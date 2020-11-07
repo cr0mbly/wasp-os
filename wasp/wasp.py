@@ -19,17 +19,18 @@ import gc
 import machine
 import micropython
 import watch
-import widgets
 
 from apps.clock import ClockApp
 from apps.flashlight import FlashlightApp
 from apps.heart import HeartApp
 from apps.launcher import LauncherApp
-from apps.pager import PagerApp, CrashApp, NotificationApp
+from apps.pager import CrashApp, NotificationApp
 from apps.settings import SettingsApp
 from apps.steps import StepCounterApp
 from apps.stopwatch import StopwatchApp
 from apps.testapp import TestApp
+from apps.musicplayer import MusicPlayerApp
+
 
 class EventType():
     """Enumerated interface actions.
@@ -47,6 +48,7 @@ class EventType():
     BACK = 254
     NEXT = 253
 
+
 class EventMask():
     """Enumerated event masks.
     """
@@ -55,6 +57,7 @@ class EventMask():
     SWIPE_UPDOWN = 0x0004
     BUTTON = 0x0008
     NEXT = 0x0010
+
 
 class PinHandler():
     """Pin (and Signal) event generator.
@@ -86,6 +89,7 @@ class PinHandler():
         self._value = new_value
         return new_value
 
+
 class Manager():
     """Wasp-os system manager
 
@@ -104,7 +108,9 @@ class Manager():
         self.launcher = LauncherApp()
         self.launcher_ring = []
         self.notifier = NotificationApp()
-        self.notifications = {1: {'title': 'test'}}
+        self.notifications = {}
+        self.musicstate = {}
+        self.musicinfo = {}
 
         self.blank_after = 15
 
@@ -115,19 +121,23 @@ class Manager():
         self._scheduling = False
 
         # TODO: Eventually these should move to main.py
-        for app, qr in ( (ClockApp, True),
-                         (StepCounterApp, True),
-                         (StopwatchApp, True),
-                         (HeartApp, True),
-                         (FlashlightApp, False),
-                         (SettingsApp, False),
-                         (TestApp, False) ):
+        for app, qr in (
+            (ClockApp, True),
+            (StepCounterApp, True),
+			(StopwatchApp, True),
+			(HeartApp, True),
+			(FlashlightApp, False),
+			(SettingsApp, False),
+            (TestApp, False),
+            (MusicPlayerApp, False)
+        ):
             try:
                 self.register(app(), qr)
             except:
                 # Let's not bring the whole device down just because there's
                 # an exception starting one of the apps...
                 pass
+
 
     def register(self, app, quick_ring=False):
         """Register an application with the system.
@@ -231,6 +241,12 @@ class Manager():
     def unnotify(self, id):
         if id in self.notifications:
             del self.notifications[id]
+
+    def togglemusic(self, state):
+        self.musicstate = state
+
+    def setmusicinfo(self, info):
+        self.musicinfo = info
 
     def request_event(self, event_mask):
         """Subscribe to events.
@@ -428,5 +444,6 @@ class Manager():
             watch.schedule = watch.nop
 
         self._scheduling = enable
+
 
 system = Manager()
